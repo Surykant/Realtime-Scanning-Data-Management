@@ -1,7 +1,7 @@
 import os
 import csv
 from sqlalchemy.orm import Session
-from app.models import Upcs
+from app.database.models.folders import Upcs
 
 BATCH_SIZE = 1  # commit every 5000 rows for speed & memory efficiency
 

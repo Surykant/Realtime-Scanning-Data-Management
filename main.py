@@ -1,14 +1,17 @@
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
-from app.database import Base, engine
-from app.watcher import FolderWatcherManager
-from routes import folder as folders_route
+from app.database.connection import Base, engine
+from app.services.watcher import FolderWatcherManager
+from routes import folder as folder_router,auth as auth_router, user as users_router
+from fastapi.middleware.cors import CORSMiddleware
+
+
 
 # Create DB tables
 Base.metadata.create_all(bind=engine)
 
 manager = FolderWatcherManager()
-folders_route.manager = manager  # inject manager into router for start/stop
+folder_router.manager = manager  # inject manager into router for start/stop
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -19,10 +22,20 @@ async def lifespan(app: FastAPI):
     finally:
         await manager.shutdown()
 
-app = FastAPI(title="CSV Watcher API", lifespan=lifespan)
+app = FastAPI(title="Realtime Scanning Data Management", lifespan=lifespan)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:3000", "http://127.0.0.1:8000", "*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
-app.include_router(folders_route.router, prefix="/folders", tags=["Folders"])
+# Include routers
+app.include_router(auth_router.router)
+app.include_router(users_router.router)
+app.include_router(folder_router.router)
 
 @app.get("/")
 def root():
-    return {"status": "ok", "service": "CSV Watcher", "rule": "process previous CSV when a new one appears"}
+    return {"status": "ok"}

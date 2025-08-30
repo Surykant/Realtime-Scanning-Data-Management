@@ -4,8 +4,9 @@ from glob import glob
 from pathlib import Path
 from sqlalchemy import select, update
 from sqlalchemy.orm import Session
-from app.models import Folder, ProcessedFile
-from app.config import settings
+from app.database.models.processedFile import ProcessedFile
+from app.database.models.folders import Folder
+from app.appsettings.config import settings
 
 def add_folder(db: Session, path: str) -> Folder:
     p = str(Path(path).resolve())
