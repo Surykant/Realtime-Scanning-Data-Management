@@ -3,7 +3,7 @@ import time
 from threading import Thread
 from sqlalchemy.orm import Session
 from datetime import datetime
-
+from app.database.models.folders import Folder
 from app.database.connection import SessionLocal
 from app.database.models.processedFile import ProcessedFile
 from app.services.ingestcsv import ingest_csv
@@ -70,8 +70,19 @@ class FolderWatcher(Thread):
         print(f"📂 Processing {file_path}")
         db: Session = SessionLocal()
         try:
-            csv_sno = int(time.time())
-            ingest_csv(file_path, db, csv_sno)
+            # 🔹 Fetch table_name and scanner_id from folders table
+            folder = db.query(Folder).filter_by(id=self.folder_id).first()
+            if not folder:
+                raise ValueError(f"Folder {self.folder_id} not found in DB")
+
+            table_name = folder.table_name   # assumes you added table_name column
+            scanner_id = folder.scanner_id   # assumes you added scanner_id column
+
+            if not table_name:
+                raise ValueError(f"Folder {self.folder_id} has no table_name set")
+
+            # 🔹 Call ingest_csv with table name + scanner_id
+            total_inserted = ingest_csv(file_path, db, table_name, scanner_id)
 
             # ✅ Save/update record in DB
             pf = db.query(ProcessedFile).filter_by(
@@ -93,7 +104,7 @@ class FolderWatcher(Thread):
                 pf.mtime = datetime.fromtimestamp(os.path.getmtime(file_path))
 
             db.commit()
-            print(f"✅ Marked as processed in DB: {file_path}")
+            print(f"✅ Inserted {total_inserted} rows and marked as processed in DB: {file_path}")
             return True
 
         except Exception as e:
@@ -121,7 +132,17 @@ class FolderWatcherManager:
                 watcher.start()
                 print(f"▶️ Restarted watcher for folder {folder_id}")
 
+    def stop(self, folder_id: int):
+        """Stop a single watcher cleanly"""
+        watcher = self.watchers.get(folder_id)
+        if watcher:
+            watcher.stop_flag = True
+            print(f"🛑 Stopped watcher for folder {folder_id}")
+            del self.watchers[folder_id]
+
     async def shutdown(self):
         for watcher in self.watchers.values():
             watcher.stop_flag = True
+        self.watchers.clear()
         print("🛑 All watchers stopped")
+

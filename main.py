@@ -2,8 +2,9 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from app.database.connection import Base, engine
 from app.services.watcher import FolderWatcherManager
-from routes import folder as folder_router,auth as auth_router, user as users_router
+from routes import folder as folder_router,auth as auth_router, user as users_router, dbtables as createTableRouter
 from fastapi.middleware.cors import CORSMiddleware
+import asyncio
 
 
 
@@ -19,6 +20,9 @@ async def lifespan(app: FastAPI):
     manager.start_for_all()
     try:
         yield
+    except asyncio.CancelledError:
+        # Ignore cancellation during shutdown
+        pass
     finally:
         await manager.shutdown()
 
@@ -35,6 +39,7 @@ app.add_middleware(
 app.include_router(auth_router.router)
 app.include_router(users_router.router)
 app.include_router(folder_router.router)
+app.include_router(createTableRouter.router)
 
 @app.get("/")
 def root():
