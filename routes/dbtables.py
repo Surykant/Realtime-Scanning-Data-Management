@@ -3,6 +3,7 @@ from fastapi import APIRouter, Form, Depends, HTTPException
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 from app.database.connection import get_db
+from pydantic import BaseModel
 
 router = APIRouter(prefix="/tables", tags=["Dynamic Tables"])
 
@@ -19,24 +20,16 @@ TYPE_MAP = {
 
 EXCLUDED_TABLES = {"folders", "processed_files", "users", "revokedtokens"}
 
+class TableSchemaRequest(BaseModel):
+    table_name: str
+    table_schema: list[dict[str, str]]
+
 
 @router.post("/create")
-async def create_table_from_json(
-    table_name: str = Form(...),
-    table_schema: str = Form(...),  # renamed from `schema`
-    db: Session = Depends(get_db)
-):
-    """
-    Create a new table from a JSON schema.
-    Example:
-    table_schema = [
-      {"slNo": "integer"},
-      {"school_code": "alphabet"},
-      {"frontsideimage": "alphabet"}
-    ]
-    """
+async def create_table_from_json(body: TableSchemaRequest, db: Session = Depends(get_db)):
     try:
-        columns = json.loads(table_schema)
+        columns = body.table_schema   
+        table_name = body.table_name
 
         if not isinstance(columns, list) or not columns:
             raise HTTPException(status_code=400, detail="Invalid schema format")
@@ -72,12 +65,13 @@ async def create_table_from_json(
 
         return {
             "success": True,
-            "message": f"Table `{table_name}` created with {len(columns)} custom columns + system columns"
+            "message": f"Table `{table_name}` created with {len(columns)} custom columns"
         }
 
     except Exception as e:
         db.rollback()
         raise HTTPException(status_code=500, detail=str(e))
+
 
 
 @router.get("/all")
@@ -93,4 +87,34 @@ def get_all_tables(db: Session = Depends(get_db)):
         return {"success": True, "tables": filtered}
 
     except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    
+
+@router.delete("/delete/{table_name}")
+async def delete_table(table_name: str, db: Session = Depends(get_db)):
+    try:
+        # Prevent deleting system tables
+        if table_name.lower() in EXCLUDED_TABLES:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Deletion of system table '{table_name}' is not allowed."
+            )
+
+        # Check if table exists
+        check_sql = f"SHOW TABLES LIKE '{table_name}'"
+        result = db.execute(text(check_sql)).fetchone()
+        if not result:
+            raise HTTPException(status_code=404, detail=f"Table '{table_name}' does not exist")
+
+        # Drop the table
+        drop_sql = f"DROP TABLE `{table_name}`"
+        db.execute(text(drop_sql))
+        db.commit()
+
+        return {"success": True, "message": f"Table `{table_name}` deleted successfully"}
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        db.rollback()
         raise HTTPException(status_code=500, detail=str(e))

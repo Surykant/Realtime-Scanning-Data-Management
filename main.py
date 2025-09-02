@@ -2,10 +2,14 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from app.database.connection import Base, engine
 from app.services.watcher import FolderWatcherManager
-from routes import folder as folder_router,auth as auth_router, user as users_router, dbtables as createTableRouter
+from routes import (
+    folder as folder_router,
+    auth as auth_router,
+    user as users_router,
+    dbtables as createTableRouter,
+)
 from fastapi.middleware.cors import CORSMiddleware
 import asyncio
-
 
 
 # Create DB tables
@@ -17,7 +21,7 @@ folder_router.manager = manager  # inject manager into router for start/stop
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # start watchers for any already-registered active folders
-    manager.start_for_all()
+    #manager.start_for_all()
     try:
         yield
     except asyncio.CancelledError:
@@ -29,7 +33,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(title="Realtime Scanning Data Management", lifespan=lifespan)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://127.0.0.1:8000", "*"],
+    allow_origins=["http://localhost:8000", "http://127.0.0.1:8000", "*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -40,6 +44,7 @@ app.include_router(auth_router.router)
 app.include_router(users_router.router)
 app.include_router(folder_router.router)
 app.include_router(createTableRouter.router)
+
 
 @app.get("/")
 def root():

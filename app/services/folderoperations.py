@@ -8,21 +8,24 @@ from app.database.models.processedFile import ProcessedFile
 from app.database.models.folders import Folder
 from app.appsettings.config import settings
 
-def add_folder(db: Session, path: str) -> Folder:
+def add_folder(db: Session, path: str, scanner_id: str, table_name: str) -> Folder:
     p = str(Path(path).resolve())
     folder = db.execute(select(Folder).where(Folder.path == p)).scalar_one_or_none()
     if folder:
         folder.active = True
+        folder.scanner_id = scanner_id
+        folder.table_name = table_name
         db.commit()
         db.refresh(folder)
         return folder
-    folder = Folder(path=p, active=True)
+
+    folder = Folder(path=p, active=True, scanner_id=scanner_id, table_name=table_name)
     db.add(folder)
     db.commit()
     db.refresh(folder)
-    # seed known files (unprocessed)
     seed_folder_files(db, folder)
     return folder
+
 
 def seed_folder_files(db: Session, folder: Folder) -> None:
     pattern = os.path.join(folder.path, settings.FILE_GLOB)

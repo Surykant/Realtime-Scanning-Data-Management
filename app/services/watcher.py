@@ -7,6 +7,7 @@ from app.database.models.folders import Folder
 from app.database.connection import SessionLocal
 from app.database.models.processedFile import ProcessedFile
 from app.services.ingestcsv import ingest_csv
+import shutil
 
 
 class FolderWatcher(Thread):
@@ -104,6 +105,11 @@ class FolderWatcher(Thread):
                 pf.mtime = datetime.fromtimestamp(os.path.getmtime(file_path))
 
             db.commit()
+            done_dir = os.path.join(self.folder_path, "Done")
+            os.makedirs(done_dir, exist_ok=True)
+            new_path = os.path.join(done_dir, os.path.basename(file_path))
+            shutil.move(file_path, new_path)
+            
             print(f"✅ Inserted {total_inserted} rows and marked as processed in DB: {file_path}")
             return True
 

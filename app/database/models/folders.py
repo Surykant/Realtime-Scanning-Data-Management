@@ -13,7 +13,7 @@ class Folder(Base):
     path = Column(String(500), unique=True, nullable=False)  # folder path
     active = Column(Boolean, default=True)
     created_at = Column(DateTime, server_default=func.now())
-    scanner_id = Column(Integer, nullable=False) 
+    scanner_id = Column(String(10), nullable=False) 
     table_name = Column(String(100), nullable=False)
     
     processed_files = relationship("ProcessedFile", back_populates="folder", cascade="all, delete")

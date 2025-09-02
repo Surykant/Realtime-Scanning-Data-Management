@@ -23,7 +23,7 @@ def add_watch_folder(
     db: Session = Depends(get_db),
     user: users.User = Depends(get_current_user),
 ):
-    folder = add_folder(db, body.path)
+    folder = add_folder(db, body.path, body.scanner_id, body.table_name)
     if manager:
         manager.start(folder.id, folder.path)
     return {"id": folder.id, "path": folder.path, "active": folder.active}
@@ -77,4 +77,27 @@ def deactivate_watch_folder(
 
     return {"status": "deactivated", "folder_id": folder_id}
 
+
+@router.delete("/delete/{folder_id}")
+def delete_folder(
+    folder_id: int,
+    db: Session = Depends(get_db),
+    user: users.User = Depends(get_current_user)
+):
+    # Find folder in DB
+    folder = db.query(folders.Folder).filter_by(id=folder_id).first()
+    if not folder:
+        raise HTTPException(status_code=404, detail="Folder not found")
+
+    # Stop watcher if running
+    if manager and folder_id in manager.watchers:
+        manager.watchers[folder_id].stop_flag = True
+        manager.watchers.pop(folder_id, None)
+        print(f"🛑 Watcher stopped for folder {folder_id}")
+
+    # Delete from DB
+    db.delete(folder)
+    db.commit()
+
+    return {"success": True, "message": f"Folder deleted successfully"}
 
