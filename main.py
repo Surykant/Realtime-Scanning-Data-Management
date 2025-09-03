@@ -21,7 +21,7 @@ folder_router.manager = manager  # inject manager into router for start/stop
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # start watchers for any already-registered active folders
-    #manager.start_for_all()
+    manager.start_for_all()
     try:
         yield
     except asyncio.CancelledError:

@@ -7,7 +7,7 @@ from app.database.connection import Base, engine
 BATCH_SIZE = 1  # commit every 5000 rows for speed & memory efficiency
 
 
-def ingest_csv(file_path: str, db: Session, table_name: str, scanner_id: int):
+def ingest_csv(file_path: str, db: Session, table_name: str, scanner_id: str):
     """
     Reads a CSV file and inserts data into the given table in batches.
     Adds ScannerID and Processed fields automatically.
@@ -23,6 +23,9 @@ def ingest_csv(file_path: str, db: Session, table_name: str, scanner_id: int):
 
     table: Table = metadata.tables[table_name]
 
+    # Build a mapping of normalized DB columns
+    col_map = {col.lower().replace(" ", "_"): col for col in table.columns.keys()}
+
     with open(file_path, mode="r", newline="", encoding="utf-8") as csvfile:
         reader = csv.DictReader(csvfile)
 
@@ -30,17 +33,19 @@ def ingest_csv(file_path: str, db: Session, table_name: str, scanner_id: int):
         total_inserted = 0
 
         for row in reader:
-            # Keep only keys that match actual table columns
-            filtered_row = {
-                k.strip().lower(): v for k, v in row.items()
-                if k.strip().lower() in table.columns.keys()
-            }
+            mapped_row = {}
+
+            for k, v in row.items():
+                norm_key = k.strip().lower().replace(" ", "_")
+                if norm_key in col_map:
+                    mapped_row[col_map[norm_key]] = v
 
             # Add system fields
-            filtered_row["scannerid"] = scanner_id
-            filtered_row["processed"] = 0
+            mapped_row["ScannerID"] = scanner_id
+            mapped_row["Processed"] = 0
+            mapped_row["CsvPath"] = file_path
 
-            rows_to_insert.append(filtered_row)
+            rows_to_insert.append(mapped_row)
 
             if len(rows_to_insert) >= BATCH_SIZE:
                 db.execute(insert(table), rows_to_insert)

@@ -133,10 +133,15 @@ class FolderWatcherManager:
             print(f"✅ Started watcher for folder {folder_id}: {path}")
 
     def start_for_all(self):
-        for folder_id, watcher in self.watchers.items():
-            if not watcher.is_alive():
-                watcher.start()
-                print(f"▶️ Restarted watcher for folder {folder_id}")
+        db = SessionLocal()
+        try:
+            active_folders = db.query(Folder).filter_by(active=True).all()
+            for f in active_folders:
+                if f.id not in self.watchers:
+                    self.start(f.id, f.path)
+                    print(f"▶️ Restarted watcher for folder {f.path}")
+        finally:
+            db.close()
 
     def stop(self, folder_id: int):
         """Stop a single watcher cleanly"""

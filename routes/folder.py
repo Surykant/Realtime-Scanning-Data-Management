@@ -1,3 +1,4 @@
+import os
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
@@ -35,7 +36,7 @@ def list_watch_folders(
     user: users.User = Depends(get_current_user),
 ):
     folders = list_folders(db)
-    return [{"id": f.id, "path": f.path, "active": f.active} for f in folders]
+    return [{"id": f.id, "path": f.path, "active": f.active, "scanner_id":f.scanner_id,"table_name":f.table_name} for f in folders]
 
 
 @router.post("/{folder_id}/activate")
@@ -61,21 +62,44 @@ def activate_watch_folder(
 def deactivate_watch_folder(
     folder_id: int,
     db: Session = Depends(get_db),
-    user: users.User = Depends(get_current_user),   # ✅ use your User model
+    user: users.User = Depends(get_current_user),  # ✅ auth
 ):
     folder = db.query(folders.Folder).filter_by(id=folder_id).first()
     if not folder:
         raise HTTPException(status_code=404, detail="Folder not found")
 
-    # mark inactive in DB
-    folder.active = False
-    db.commit()
+    if not manager or folder_id not in manager.watchers:
+        raise HTTPException(status_code=400, detail="Watcher not running for this folder")
 
-    # stop watcher if running
-    if manager:
-        manager.stop(folder_id)
+    watcher = manager.watchers[folder_id]
 
-    return {"status": "deactivated", "folder_id": folder_id}
+    # ✅ Process all remaining CSVs synchronously before stopping
+    try:
+        files = sorted([f for f in os.listdir(folder.path) if f.endswith(".csv")])
+
+        for fname in files:
+            file_path = os.path.join(folder.path, fname)
+            if fname not in watcher.processed_files:
+                watcher.process_csv(file_path)
+                watcher.processed_files.add(fname)
+
+    except Exception as e:
+        print(f"⚠️ Error while processing remaining files for folder {folder_id}: {e}")
+    
+    finally:
+        # ✅ Always deactivate in DB
+        folder.active = False
+        db.commit()
+
+    # ✅ Stop watcher
+    manager.stop(folder_id)
+
+    return {
+        "status": "deactivated",
+        "folder_id": folder_id,
+        "message": "All CSVs processed and watcher stopped."
+    }
+
 
 
 @router.delete("/delete/{folder_id}")
