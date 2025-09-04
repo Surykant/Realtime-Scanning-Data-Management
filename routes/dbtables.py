@@ -4,6 +4,7 @@ from sqlalchemy import text
 from sqlalchemy.orm import Session
 from app.database.connection import get_db
 from pydantic import BaseModel
+from app.services.recordsearch import search_record
 
 router = APIRouter(prefix="/tables", tags=["Dynamic Tables"])
 
@@ -126,4 +127,19 @@ async def delete_table(table_name: str, db: Session = Depends(get_db)):
         raise
     except Exception as e:
         db.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/searchrecord")
+def search_in_table(
+    table_name: str,
+    search: str,
+    db: Session = Depends(get_db)
+):
+    try:
+        results = search_record(db, table_name, search)
+        if not results:
+            raise HTTPException(status_code=404, detail="No matching records found")
+        return {"success": True, "results": results}
+    except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

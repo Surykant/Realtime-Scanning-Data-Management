@@ -10,9 +10,9 @@ class ProcessedFile(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     filename = Column(String(255), nullable=False)
-    full_path = Column(String(1024), nullable=False)
+    full_path = Column(String(255), nullable=False)
     processed = Column(Boolean, default=False, index=True)
-    error = Column(String(1024), nullable=True)
+    error = Column(String(255), nullable=True)
     mtime = Column(DateTime, nullable=True)   # file modified time
     created_at = Column(DateTime, server_default=func.now())
 
