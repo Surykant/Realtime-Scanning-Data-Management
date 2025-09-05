@@ -7,7 +7,7 @@ from app.database.models.folders import Folder
 from app.database.connection import SessionLocal
 from app.database.models.processedFile import ProcessedFile
 from app.services.ingestcsv import ingest_csv
-import shutil
+import shutil,logging
 
 
 class FolderWatcher(Thread):
@@ -25,12 +25,12 @@ class FolderWatcher(Thread):
                 folder_id=folder_id, processed=True
             ).all()
             self.processed_files = {os.path.basename(row[0]) for row in existing}
-            print(f"🔄 Loaded {len(self.processed_files)} already-processed files from DB for {self.folder_path}")
+            logging.info(f"🔄 Loaded {len(self.processed_files)} already-processed files from DB for {self.folder_path}")
         finally:
             db.close()
 
     def run(self):
-        print(f"👀 Watching folder: {self.folder_path}")
+        logging.info(f"👀 Watching folder: {self.folder_path}")
         while not self.stop_flag:
             try:
                 # get all CSV files in the folder
@@ -63,12 +63,12 @@ class FolderWatcher(Thread):
                             self.processed_files.add(fname)
 
             except Exception as e:
-                print(f"⚠️ Error watching {self.folder_path}: {e}")
+                logging.error(f"⚠️ Error watching {self.folder_path}: {e}")
 
             time.sleep(5)  # check every 5 seconds
 
     def process_csv(self, file_path: str) -> bool:
-        print(f"📂 Processing {file_path}")
+        logging.info(f"📂 Processing {file_path}")
         db: Session = SessionLocal()
         try:
             # 🔹 Fetch table_name and scanner_id from folders table
@@ -110,11 +110,11 @@ class FolderWatcher(Thread):
             new_path = os.path.join(done_dir, os.path.basename(file_path))
             shutil.move(file_path, new_path)
             
-            print(f"✅ Inserted {total_inserted} rows and marked as processed in DB: {file_path}")
+            logging.info(f"✅ Inserted {total_inserted} rows and marked as processed in DB: {file_path}")
             return True
 
         except Exception as e:
-            print(f"❌ Error processing {file_path}: {e}")
+            logging.error(f"❌ Error processing {file_path}: {e}")
             db.rollback()
             return False
         finally:
@@ -130,7 +130,7 @@ class FolderWatcherManager:
             watcher = FolderWatcher(folder_id, path)
             self.watchers[folder_id] = watcher
             watcher.start()
-            print(f"✅ Started watcher for folder {folder_id}: {path}")
+            logging.info(f"✅ Started watcher for folder {folder_id}: {path}")
 
     def start_for_all(self):
         db = SessionLocal()
@@ -139,7 +139,7 @@ class FolderWatcherManager:
             for f in active_folders:
                 if f.id not in self.watchers:
                     self.start(f.id, f.path)
-                    print(f"▶️ Restarted watcher for folder {f.path}")
+                    logging.info(f"▶️ Restarted watcher for folder {f.path}")
         finally:
             db.close()
 
@@ -148,12 +148,12 @@ class FolderWatcherManager:
         watcher = self.watchers.get(folder_id)
         if watcher:
             watcher.stop_flag = True
-            print(f"🛑 Stopped watcher for folder {folder_id}")
+            logging.info(f"🛑 Stopped watcher for folder {folder_id}")
             del self.watchers[folder_id]
 
     async def shutdown(self):
         for watcher in self.watchers.values():
             watcher.stop_flag = True
         self.watchers.clear()
-        print("🛑 All watchers stopped")
+        logging.info("🛑 All watchers stopped")
 

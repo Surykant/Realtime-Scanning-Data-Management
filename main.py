@@ -1,3 +1,18 @@
+import sys, io
+
+# Force UTF-8 output for Windows console
+sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8", errors="replace")
+sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding="utf-8", errors="replace")
+
+import logging
+
+# Setup logging
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(message)s",
+    handlers=[logging.StreamHandler()]
+)
+
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from app.database.connection import Base, engine

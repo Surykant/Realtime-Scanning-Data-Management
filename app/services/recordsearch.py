@@ -1,5 +1,5 @@
 import base64
-import os
+import os,logging
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
@@ -44,7 +44,7 @@ def search_record(db: Session, table_name: str, search_string: str):
                         image_base64 = base64.b64encode(img_file.read()).decode("utf-8")
 
             except Exception as e:
-                print(f"⚠️ Error processing image path: {e}")
+                logging.error(f"⚠️ Error processing image path: {e}")
 
         results.append({
             "record": row_dict,

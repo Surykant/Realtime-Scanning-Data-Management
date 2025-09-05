@@ -3,9 +3,9 @@ import csv
 from sqlalchemy import Table, insert
 from sqlalchemy.orm import Session
 from app.database.connection import Base, engine
-import chardet
+import chardet,logging
 
-BATCH_SIZE = 1  # commit every 5000 rows for speed & memory efficiency
+BATCH_SIZE = 1  
 
 
 def get_encoding(file_path):
@@ -64,7 +64,7 @@ def ingest_csv(file_path: str, db: Session, table_name: str, scanner_id: str):
             db.commit()
             total_inserted += len(rows_to_insert)
 
-        print(
+        logging.info(
             f"✅ Inserted {total_inserted} rows into table `{table_name}` from {file_path}"
         )
         return total_inserted

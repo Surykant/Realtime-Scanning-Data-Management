@@ -1,4 +1,4 @@
-import os
+import os,logging
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
@@ -84,7 +84,7 @@ def deactivate_watch_folder(
                 watcher.processed_files.add(fname)
 
     except Exception as e:
-        print(f"⚠️ Error while processing remaining files for folder {folder_id}: {e}")
+        logging.error(f"⚠️ Error while processing remaining files for folder {folder_id}: {e}")
     
     finally:
         # ✅ Always deactivate in DB
@@ -117,7 +117,7 @@ def delete_folder(
     if manager and folder_id in manager.watchers:
         manager.watchers[folder_id].stop_flag = True
         manager.watchers.pop(folder_id, None)
-        print(f"🛑 Watcher stopped for folder {folder_id}")
+        logging.info(f"🛑 Watcher stopped for folder {folder_id}")
 
     # Delete from DB
     db.delete(folder)
