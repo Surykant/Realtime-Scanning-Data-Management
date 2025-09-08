@@ -18,19 +18,19 @@ class FolderWatcher(Thread):
         self.stop_flag = False
         self.processed_files = set()
 
-        # ✅ Load already processed files from DB at startup
+        # Load already processed files from DB at startup
         db: Session = SessionLocal()
         try:
             existing = db.query(ProcessedFile.full_path).filter_by(
                 folder_id=folder_id, processed=True
             ).all()
             self.processed_files = {os.path.basename(row[0]) for row in existing}
-            logging.info(f"🔄 Loaded {len(self.processed_files)} already-processed files from DB for {self.folder_path}")
+            logging.info(f"Loaded {len(self.processed_files)} already-processed files from DB for {self.folder_path}")
         finally:
             db.close()
 
     def run(self):
-        logging.info(f"👀 Watching folder: {self.folder_path}")
+        logging.info(f" Watching folder: {self.folder_path}")
         while not self.stop_flag:
             try:
                 # get all CSV files in the folder
@@ -46,7 +46,7 @@ class FolderWatcher(Thread):
                 for fname in files[:-1]:
                     file_path = os.path.join(self.folder_path, fname)
 
-                    # ✅ Double check with DB
+                    # Double check with DB
                     db: Session = SessionLocal()
                     already_done = db.query(ProcessedFile).filter_by(
                         folder_id=self.folder_id,
@@ -63,12 +63,12 @@ class FolderWatcher(Thread):
                             self.processed_files.add(fname)
 
             except Exception as e:
-                logging.error(f"⚠️ Error watching {self.folder_path}: {e}")
+                logging.error(f" Error watching {self.folder_path}: {e}")
 
             time.sleep(5)  # check every 5 seconds
 
     def process_csv(self, file_path: str) -> bool:
-        logging.info(f"📂 Processing {file_path}")
+        logging.info(f" Processing {file_path}")
         db: Session = SessionLocal()
         try:
             # 🔹 Fetch table_name and scanner_id from folders table
@@ -85,7 +85,7 @@ class FolderWatcher(Thread):
             # 🔹 Call ingest_csv with table name + scanner_id
             total_inserted = ingest_csv(file_path, db, table_name, scanner_id)
 
-            # ✅ Save/update record in DB
+            #  Save/update record in DB
             pf = db.query(ProcessedFile).filter_by(
                 folder_id=self.folder_id,
                 full_path=file_path
@@ -110,11 +110,11 @@ class FolderWatcher(Thread):
             new_path = os.path.join(done_dir, os.path.basename(file_path))
             shutil.move(file_path, new_path)
             
-            logging.info(f"✅ Inserted {total_inserted} rows and marked as processed in DB: {file_path}")
+            logging.info(f"Inserted {total_inserted} rows and marked as processed in DB: {file_path}")
             return True
 
         except Exception as e:
-            logging.error(f"❌ Error processing {file_path}: {e}")
+            logging.error(f"Error processing {file_path}: {e}")
             db.rollback()
             return False
         finally:
@@ -130,7 +130,7 @@ class FolderWatcherManager:
             watcher = FolderWatcher(folder_id, path)
             self.watchers[folder_id] = watcher
             watcher.start()
-            logging.info(f"✅ Started watcher for folder {folder_id}: {path}")
+            logging.info(f"Started watcher for folder {folder_id}: {path}")
 
     def start_for_all(self):
         db = SessionLocal()
@@ -139,7 +139,7 @@ class FolderWatcherManager:
             for f in active_folders:
                 if f.id not in self.watchers:
                     self.start(f.id, f.path)
-                    logging.info(f"▶️ Restarted watcher for folder {f.path}")
+                    logging.info(f"Restarted watcher for folder {f.path}")
         finally:
             db.close()
 
@@ -148,12 +148,12 @@ class FolderWatcherManager:
         watcher = self.watchers.get(folder_id)
         if watcher:
             watcher.stop_flag = True
-            logging.info(f"🛑 Stopped watcher for folder {folder_id}")
+            logging.info(f"Stopped watcher for folder {folder_id}")
             del self.watchers[folder_id]
 
     async def shutdown(self):
         for watcher in self.watchers.values():
             watcher.stop_flag = True
         self.watchers.clear()
-        logging.info("🛑 All watchers stopped")
+        logging.info("All watchers stopped")
 

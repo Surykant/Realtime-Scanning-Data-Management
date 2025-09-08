@@ -65,6 +65,6 @@ def ingest_csv(file_path: str, db: Session, table_name: str, scanner_id: str):
             total_inserted += len(rows_to_insert)
 
         logging.info(
-            f"✅ Inserted {total_inserted} rows into table `{table_name}` from {file_path}"
+            f"Inserted {total_inserted} rows into table `{table_name}` from {file_path}"
         )
         return total_inserted

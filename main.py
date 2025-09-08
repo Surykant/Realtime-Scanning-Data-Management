@@ -22,6 +22,7 @@ from routes import (
     auth as auth_router,
     user as users_router,
     dbtables as createTableRouter,
+    dashboard as dashboard_router,
 )
 from fastapi.middleware.cors import CORSMiddleware
 import asyncio
@@ -59,7 +60,7 @@ app.include_router(auth_router.router)
 app.include_router(users_router.router)
 app.include_router(folder_router.router)
 app.include_router(createTableRouter.router)
-
+app.include_router(dashboard_router.router)
 
 @app.get("/")
 def root():

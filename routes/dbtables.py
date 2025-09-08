@@ -1,10 +1,10 @@
-import json
+import json,os,base64
 from fastapi import APIRouter, Form, Depends, HTTPException
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 from app.database.connection import get_db
 from pydantic import BaseModel
-from app.services.recordsearch import search_record
+from app.services.recordsearch import search_record, get_table_columns
 
 router = APIRouter(prefix="/tables", tags=["Dynamic Tables"])
 
@@ -133,13 +133,61 @@ async def delete_table(table_name: str, db: Session = Depends(get_db)):
 @router.get("/searchrecord")
 def search_in_table(
     table_name: str,
-    search: str,
+    column_name: str,
+    search_value: str,
     db: Session = Depends(get_db)
 ):
     try:
-        results = search_record(db, table_name, search)
+        results = search_record(db, table_name, column_name, search_value)
         if not results:
             raise HTTPException(status_code=404, detail="No matching records found")
         return {"success": True, "results": results}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/image")
+def get_image_base64(
+    csv_path: str,
+    front_side_image: str
+):
+    try:
+        base_dir = os.path.dirname(csv_path)
+        parent_dir = os.path.dirname(base_dir)
+
+        img_relative = "/".join(front_side_image.split("/")[-2:])  # Use '/' everywhere
+
+        image_path = os.path.join(parent_dir, img_relative)
+
+        # Normalize path to avoid issues
+        image_path = os.path.normpath(image_path)
+
+        if not os.path.exists(image_path):
+            raise HTTPException(status_code=404, detail=f"Image not found at {image_path}")
+
+        with open(image_path, "rb") as img_file:
+            image_base64 = base64.b64encode(img_file.read()).decode("utf-8")
+
+        return {
+            "success": True,
+            "image_base64": image_base64
+        }
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to fetch image: {e}")
+
+
+@router.get("/columns")
+def get_columns_from_table(
+    table_name: str ,
+    db: Session = Depends(get_db)
+):
+    columns = get_table_columns(db, table_name)
+    if not columns:
+        raise HTTPException(status_code=404, detail="No columns found or table does not exist")
+
+    return {
+        "success": True,
+        "table_name": table_name,
+        "columns": columns
+    }

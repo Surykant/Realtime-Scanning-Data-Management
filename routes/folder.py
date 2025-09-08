@@ -62,7 +62,7 @@ def activate_watch_folder(
 def deactivate_watch_folder(
     folder_id: int,
     db: Session = Depends(get_db),
-    user: users.User = Depends(get_current_user),  # ✅ auth
+    user: users.User = Depends(get_current_user),  #  auth
 ):
     folder = db.query(folders.Folder).filter_by(id=folder_id).first()
     if not folder:
@@ -73,7 +73,7 @@ def deactivate_watch_folder(
 
     watcher = manager.watchers[folder_id]
 
-    # ✅ Process all remaining CSVs synchronously before stopping
+    #  Process all remaining CSVs synchronously before stopping
     try:
         files = sorted([f for f in os.listdir(folder.path) if f.endswith(".csv")])
 
@@ -84,14 +84,14 @@ def deactivate_watch_folder(
                 watcher.processed_files.add(fname)
 
     except Exception as e:
-        logging.error(f"⚠️ Error while processing remaining files for folder {folder_id}: {e}")
+        logging.error(f"Error while processing remaining files for folder {folder_id}: {e}")
     
     finally:
-        # ✅ Always deactivate in DB
+        #  Always deactivate in DB
         folder.active = False
         db.commit()
 
-    # ✅ Stop watcher
+    # Stop watcher
     manager.stop(folder_id)
 
     return {
@@ -117,7 +117,7 @@ def delete_folder(
     if manager and folder_id in manager.watchers:
         manager.watchers[folder_id].stop_flag = True
         manager.watchers.pop(folder_id, None)
-        logging.info(f"🛑 Watcher stopped for folder {folder_id}")
+        logging.info(f" Watcher stopped for folder {folder_id}")
 
     # Delete from DB
     db.delete(folder)

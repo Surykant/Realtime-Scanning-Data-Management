@@ -1,58 +1,33 @@
-import base64
-import os,logging
 from sqlalchemy import text
 from sqlalchemy.orm import Session
+from fastapi import HTTPException
 
 
-def search_record(db: Session, table_name: str, search_string: str):
-    # 🔹 Build search query
+def search_record(db: Session, table_name: str, column_name: str, search_value: str):
+    valid_columns = get_table_columns(db, table_name)
+    if column_name not in valid_columns:
+        raise ValueError(f"Column '{column_name}' does not exist in table '{table_name}'")
+
     query = text(f"""
         SELECT * FROM `{table_name}`
-        WHERE CONCAT_WS(' ', {", ".join(["`" + col + "`" for col in get_table_columns(db, table_name)])})
-        LIKE :search
-        LIMIT 10
+        WHERE `{column_name}` LIKE :search
+        LIMIT 100
     """)
 
-    rows = db.execute(query, {"search": f"%{search_string}%"}).fetchall()
+    rows = db.execute(query, {"search": f"%{search_value}%"}).fetchall()
     if not rows:
         return []
 
     results = []
     for row in rows:
-        row_dict = dict(row._mapping)  # ✅ Correct way in SQLAlchemy 2.x
-
-        csv_path = row_dict.get("CsvPath")
-        img_path = row_dict.get("Front-Side-Image") or row_dict.get("Front_side_Image")
-
-        image_base64 = None
-        new_image_path = None
-
-        if csv_path and img_path:
-            try:
-                # Base dir = directory containing the CSV
-                base_dir = os.path.dirname(csv_path)
-                parent_dir = os.path.dirname(base_dir)
-
-                # Take last 2 parts of image path
-                img_relative = "\\".join(img_path.split("\\")[-2:])
-
-                # Construct new path
-                new_image_path = os.path.join(parent_dir, img_relative)
-
-                if os.path.exists(new_image_path):
-                    with open(new_image_path, "rb") as img_file:
-                        image_base64 = base64.b64encode(img_file.read()).decode("utf-8")
-
-            except Exception as e:
-                logging.error(f"⚠️ Error processing image path: {e}")
+        row_dict = dict(row._mapping)
 
         results.append({
-            "record": row_dict,
-            "image_path": new_image_path,
-            "image_base64": image_base64
+            "record": row_dict
         })
 
     return results
+
 
 
 
@@ -61,3 +36,12 @@ def get_table_columns(db: Session, table_name: str):
     query = text(f"SHOW COLUMNS FROM `{table_name}`")
     cols = db.execute(query).fetchall()
     return [c[0] for c in cols]
+
+
+def get_table_columns(db: Session, table_name: str) -> list[str]:
+    try:
+        query = text(f"SHOW COLUMNS FROM `{table_name}`")
+        cols = db.execute(query).fetchall()
+        return [c[0] for c in cols]
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to fetch columns: {e}")
