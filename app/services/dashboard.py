@@ -14,32 +14,29 @@ def get_active_users(db: Session) -> int:
     return db.query(User).filter(User.is_active == True).count()
 
 def get_total_data_rows(db: Session) -> int:
-    # Get all user tables from the database
     tables_query = text("""
         SELECT table_name FROM information_schema.tables
         WHERE table_schema = DATABASE()
     """)
-    
+
     result = db.execute(tables_query).fetchall()
     all_tables = [row[0] for row in result]
 
-    # Filter out the excluded tables
     target_tables = [t for t in all_tables if t not in EXCLUDED_TABLES]
 
     total_count = 0
 
-    # Efficient COUNT for each table
     for table in target_tables:
         try:
-            count_query = text(f"SELECT TABLE_ROWS FROM information_schema.tables WHERE table_schema = DATABASE() AND table_name = :table_name")
-            count_result = db.execute(count_query, {"table_name": table}).fetchone()
-            table_rows = count_result[0] if count_result and count_result[0] is not None else 0
-            total_count += int(table_rows)
+            count_query = text(f"SELECT COUNT(*) FROM `{table}`")
+            count_result = db.execute(count_query).fetchone()
+            table_rows = count_result[0] if count_result else 0
+            total_count += table_rows
         except Exception as e:
-            # Ignore errors on any table, just log
             print(f"Skipping table {table} due to error: {e}")
 
     return total_count
+
 
 def get_todays_data_rows(db: Session) -> int:
     today_date = datetime.now().date().isoformat()  # Format: 'YYYY-MM-DD'

@@ -1,11 +1,12 @@
 import os
-import csv
+import csv,shutil
 from sqlalchemy import Table, insert
 from sqlalchemy.orm import Session
 from app.database.connection import Base, engine
 import chardet,logging
+from app.appsettings.config import settings
 
-BATCH_SIZE = 1  
+BATCH_SIZE = 1000  
 
 
 def get_encoding(file_path):
@@ -67,4 +68,20 @@ def ingest_csv(file_path: str, db: Session, table_name: str, scanner_id: str):
         logging.info(
             f"Inserted {total_inserted} rows into table `{table_name}` from {file_path}"
         )
-        return total_inserted
+    try:
+        filename = os.path.basename(file_path)
+        parent_folder = os.path.basename(os.path.dirname(file_path))  
+
+        relative_part = os.path.join(parent_folder, filename)  
+        
+        dest_path = os.path.join(settings.COPY_FILE_PATH, relative_part)
+        dest_dir = os.path.dirname(dest_path)
+        os.makedirs(dest_dir, exist_ok=True)
+        shutil.copy2(file_path, dest_path)
+
+        logging.info(f"CSV copied to {dest_path}")
+
+    except Exception as e:
+        logging.error(f"Failed to copy CSV: {e}")
+        
+    return total_inserted

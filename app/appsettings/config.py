@@ -11,5 +11,6 @@ class Settings:
     DB_NAME = os.getenv("DB_NAME", "fastapi_db")
     INGEST_CHUNK_SIZE = int(os.getenv("INGEST_CHUNK_SIZE", "5000"))
     FILE_GLOB = os.getenv("FILE_GLOB", "*.csv")
-
+    COPY_FILE_PATH= os.getenv("COPY_FILE_PATH","D:\Surykant\Python\Test data\Done")
+    
 settings = Settings()
