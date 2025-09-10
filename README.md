@@ -55,35 +55,35 @@ A robust FastAPI-based solution for managing CSV data ingestion, dynamic table c
 
 ##📁 Folder Management
 
-POST /folders/add – Add and start folder watcher
+	POST /folders/add – Add and start folder watcher
 
-POST /folders/{folder_id}/deactivate – Deactivate folder after processing remaining CSVs
+	POST /folders/{folder_id}/deactivate – Deactivate folder after processing remaining CSVs
 
-DELETE /folders/delete/{folder_id} – Delete folder and stop watcher
+	DELETE /folders/delete/{folder_id} – Delete folder and stop watcher
 
 ##🧱 Table Operations
 
-POST /tables/create – Create new table from JSON schema
+	POST /tables/create – Create new table from JSON schema
 
-GET /tables/list – Get list of all tables
+	GET /tables/list – Get list of all tables
 
-POST /tables/delete/{table_name} – Delete a table
+	POST /tables/delete/{table_name} – Delete a table
 
-GET /tables/get-columns/{table_name} – Get column names of a table
+	GET /tables/get-columns/{table_name} – Get column names of a table
 
-GET /tables/count-rows – Get total row count (accurate count)
+	GET /tables/count-rows – Get total row count (accurate count)
 
-GET /tables/count-today – Get today’s row count
+	GET /tables/count-today – Get today’s row count
 
-GET /tables/count-scannerwise – Get row count per scanner ID
+	GET /tables/count-scannerwise – Get row count per scanner ID
 
-GET /tables/count-scannerwise-today – Get today’s row count per scanner ID
+	GET /tables/count-scannerwise-today – Get today’s row count per scanner ID
 
-GET /tables/search-record – Search data from a specific table column
+	GET /tables/search-record – Search data from a specific table column
 
 ##🖼️ Image Operations
 
-GET /tables/image – Return base64 of image by providing csv_path and front_side_image
+	GET /tables/image – Return base64 of image by providing csv_path and front_side_image
 
 ##⚡ Notes
 
