@@ -58,6 +58,8 @@ A robust FastAPI-based solution for managing CSV data ingestion, dynamic table c
 	POST /folders/add – Add and start folder watcher
 
 	POST /folders/{folder_id}/deactivate – Deactivate folder after processing remaining CSVs
+ 
+ 	POST /folders/{folder_id}/activate – Activate folder before processing CSVs
 
 	DELETE /folders/delete/{folder_id} – Delete folder and stop watcher
 
@@ -65,21 +67,21 @@ A robust FastAPI-based solution for managing CSV data ingestion, dynamic table c
 
 	POST /tables/create – Create new table from JSON schema
 
-	GET /tables/list – Get list of all tables
+	GET /tables/all – Get list of all tables
 
 	POST /tables/delete/{table_name} – Delete a table
 
-	GET /tables/get-columns/{table_name} – Get column names of a table
+	GET /tables/columns – Get column names of a table
 
-	GET /tables/count-rows – Get total row count (accurate count)
+	GET /tables/totalfilescanned – Get total row count (accurate count)
 
-	GET /tables/count-today – Get today’s row count
+	GET /tables/todaysfilescanned – Get today’s row count
 
-	GET /tables/count-scannerwise – Get row count per scanner ID
+	GET /tables/totaldatascannerwise – Get row count per scanner ID
 
-	GET /tables/count-scannerwise-today – Get today’s row count per scanner ID
+	GET /tables/todaysdatascannerwise – Get today’s row count per scanner ID
 
-	GET /tables/search-record – Search data from a specific table column
+	GET /tables/searchrecord – Search data from a specific table column
 
 ##🖼️ Image Operations
 
